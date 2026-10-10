@@ -8,18 +8,26 @@ The horizontal module bar opens one view at a time:
 - **Vortex:** retained jobs, queue status, ready downloads, formats, file sizes, and expiration.
 - **Transcriptions:** local and Gemini transcription activity, filtered on the server before pagination.
 - **Gemini:** existing account approvals, request usage, tokens, and estimated costs.
-- **Logins:** account names/email addresses, Google or email/password sign-in methods, observed apps, and session sightings.
+- **Logins:** separate first/last names (when supplied by the sign-in provider), email addresses, observed Vision/Venture/Vortex access, and an owner-only account removal action.
 - **Activity:** the complete retained event timeline.
 
 The account selector scopes activity, Gemini usage, and Vortex jobs. Gemini access approvals remain global administrative controls. Tabs support arrow keys, Home, and End; the tab bar scrolls horizontally on phones.
 
 ## Companion PC update
 
-This page is mirrored in `JRDN-R/vision/activity.html`. Deploy the matching Vision changes to `vision-pc/activity_dashboard.py`, `audit_logs.py`, `server.py`, and `vortex.py` using the normal `Setup-Vision-PC.ps1 -Action Update` workflow after merging the companion PR. Updating only this GitHub Pages repository does not update the PC service. The dashboard reports missing Vortex support without hiding existing Vision activity.
+This page is mirrored in `JRDN-R/vision/activity.html`. Deploy the matching Vision changes to `vision-pc/activity_dashboard.py`, `account_administration.py`, `audit_logs.py`, `server.py`, and `vortex.py` using the normal `Setup-Vision-PC.ps1 -Action Update` workflow after merging the companion PR. Updating only this GitHub Pages repository does not update the PC service. The dashboard reports missing Vortex support without hiding existing Vision activity.
 
 The existing owner allowlist is required for every admin endpoint. The Vortex report uses existing retained job records, so it does not start with an empty history after updating. Provider and app observations begin when accounts next contact the updated PC; older unrecorded providers are labeled **Not recorded**. Shared account sessions are counted once, even when used in both apps.
 
 Vortex reports contain operational metadata only. They exclude media URLs, search terms, titles, filenames, download tickets, and extractor diagnostics. A ready job means a file was prepared on the server, not that the person saved it on their device. Files expire after five days; deleted jobs are excluded from retained totals.
+
+## Account removal (requires PC configuration)
+
+The **Logins** directory offers **Remove** for each non-admin account. The confirmation dialog previews counts of affected Vision projects, Venture conversations, Vortex jobs, and Vision imports; type the account's exact email and `DELETE` to proceed. Only a verified, explicitly allowlisted Google administrator can preview or remove accounts. Deletion is blocked while that account has active processing. Owner and other administrator accounts cannot be deleted through this view.
+
+The backend must be updated first and its Firebase Admin SDK service-account JSON stored **privately on the PC**, never in GitHub or browser storage. Add `adminServiceAccountPath` under the existing `firebaseAuth` section of `C:\\ProgramData\\VisionPC\\config.json`, using an **absolute file path** to the JSON for the *same Firebase project* configured for Vision. Restrict the service-account file to the Windows service identity / administrator and use the least privilege needed to delete Firebase Auth users. This is a deliberately separate, disabled-by-default capability.
+
+After confirmation, the PC deletes the Firebase Authentication identity and account-owned Vision/Venture/Vortex files, locally generated transcription/upload/document files, context index, associated saved credentials, and database records. A durable removal marker blocks reuse of previously minted Firebase ID tokens; incomplete cleanup requires repeating the operation. **Removal is permanent. Back up the PC data before using it.** This affects the PC-held records and Firebase Authentication, not copies already downloaded to another person's device or files retained independently by external providers. Only accounts observed by the PC appear in this directory. If a user has never supplied a first or last name, the field reads **Not provided** rather than guessing.
 
 ## Preview and verification
 

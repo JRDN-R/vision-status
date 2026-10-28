@@ -2,6 +2,8 @@
 
 Private owner dashboard for Vision and Vortex at https://jrdn-r.github.io/vision-status/.
 
+The **Vision account requests** panel above the module bar approves or denies new memberships. This controls entry to Vision, Venture, and Vortex; paid Account Upgrade approval remains separate. Sign in with Google as `rappsongs@gmail.com` for the designated owner account after deploying the matching membership update to FUPCJ Server. The server verifies and binds the owner UID. Existing private UID administrators retain access.
+
 The horizontal module bar opens one view at a time:
 
 - **Overview:** compact account, activity, transcription, Gemini, and Vortex totals.

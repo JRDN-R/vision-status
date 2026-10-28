@@ -23,7 +23,7 @@ gemini={'accessRequests':[{'userId':'b'*64,'provider':'password','apps':[{'app':
  'byDay':[{'day':'2026-10-04','requests':1,'inputTokens':214,'outputTokens':38,'thoughtTokens':0,'totalTokens':252,'estimatedCost':.00042,'unpricedRequests':0}], 'hasMore':False,'pricingVersion':'pricing-v2'}}
 MOCK=r'''<script>
 window.__vortex={available:true,jobs:[{id:'vortex-1',userId:'a'.repeat(64),kind:'download',mode:'audio',format:'mp3',quality:'max',status:'complete',outputBytes:1024,createdAt:1791044000,updatedAt:1791044001,expiresAt:1791476001}],totals:{jobs:1,downloads:1,inspections:0,queued:0,processing:0,readyDownloads:1,retainedBytes:1024,error:0,expired:0},hasMore:false};window.__vortexMode='ok';window.__data=FIXTURE;window.__gemini=GEMINI_FIXTURE;window.__actionMode='ok';window.__mode='ok';window.__reads=[];window.__tokenCalls=[];window.__held=[];
-window.__owner={uid:'owner',email:'one@example.test',getIdToken:async force=>{window.__tokenCalls.push(!!force);return 'FAKE-TEST-TOKEN';}};
+window.__memberships={pendingCount:1,requests:[{userId:'c'.repeat(64),name:'New member',email:'new@example.test',status:'pending'}]};window.__owner={uid:'owner',email:'one@example.test',getIdToken:async force=>{window.__tokenCalls.push(!!force);return 'FAKE-TEST-TOKEN';}};
 window.__auth={currentUser:window.__owner};
 window.__appSDK={initializeApp:()=>({})};
 window.__authSDK={getAuth:()=>window.__auth,useDeviceLanguage:()=>{},setPersistence:async()=>{},browserLocalPersistence:'local',GoogleAuthProvider:class{setCustomParameters(){}},onAuthStateChanged:(auth,cb)=>{window.__callback=cb;queueMicrotask(()=>cb(auth.currentUser));},signOut:async()=>{window.__auth.currentUser=null;window.__callback(null);},signInWithPopup:async()=>{}};
@@ -35,6 +35,8 @@ window.fetch=async(url,options)=>{
  if(window.__mode==='expired'){window.__mode='ok';return new Response(JSON.stringify({error:'Expired'}),{status:401});}
  if(window.__mode==='missing')return new Response(JSON.stringify({error:'Not found'}),{status:404});
  const parsed=new URL(url),person=parsed.searchParams.get('user');
+ if(parsed.pathname==='/api/admin/memberships')return new Response(JSON.stringify(window.__memberships),{status:200});
+ if(parsed.pathname==='/api/admin/memberships/decide'){const body=JSON.parse(options.body);window.__memberships.requests[0].status=body.decision;window.__memberships.pendingCount=0;return new Response(JSON.stringify({status:body.decision}),{status:200});}
  if(parsed.pathname==='/api/admin/gemini/access'){
    if(window.__actionMode==='fail')return new Response(JSON.stringify({error:'Test update rejected'}),{status:409});
    const body=JSON.parse(options.body),row=window.__gemini.accessRequests.find(item=>item.userId===body.userId);row.status=body.decision;row.decidedAt=Date.now()/1000;row.waitingJobs=0;window.__gemini.pendingCount=window.__gemini.accessRequests.filter(item=>item.status==='pending').length;
@@ -56,6 +58,11 @@ with sync_playwright() as p:
  page=browser.new_page(viewport={'width':390,'height':844},timezone_id='America/New_York')
  errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  page.set_content(TEST_HTML);page.wait_for_selector('#dashboard:not([hidden])')
+ assert page.locator('#membershipRequests').get_by_text('new@example.test',exact=True).is_visible()
+ page.get_by_role('button',name='Approve account',exact=True).click()
+ page.locator('#membershipRequests').get_by_text('No accounts are awaiting approval.').wait_for()
+ assert page.evaluate("window.__reads.some(r=>r.url.endsWith('/api/admin/memberships/decide')&&JSON.parse(r.body).decision==='approved')")
+ print('PASS membership queue, approval action, separate upgrade panel')
  assert page.locator('.event').count()==3
  assert page.locator('.person').count()==3
  assert page.locator('.person-copy strong').all_text_contents()==['Everyone','Jordan','Jordan']
